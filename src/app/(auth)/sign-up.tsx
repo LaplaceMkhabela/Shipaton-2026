@@ -5,25 +5,30 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
-import { Colors, Radius, Space, Type } from '@/constants/theme';
-import { signInWithPassword } from '@/lib/supabase/auth';
+import { Colors, Space, Type } from '@/constants/theme';
+import { signUp } from '@/lib/supabase/auth';
 import { useAuth } from '@/providers/auth-provider';
+import { NotConfiguredBanner } from './sign-in';
 
-export default function SignInScreen() {
+export default function SignUpScreen() {
   const { isConfigured } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [handle, setHandle] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(false);
+
+  const canSubmit = !!email && password.length >= 6 && !!handle && !!displayName;
 
   async function submit() {
     setError(undefined);
     setLoading(true);
     try {
-      await signInWithPassword(email, password);
+      await signUp({ email, password, handle, displayName });
       router.back();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not sign in.');
+      setError(e instanceof Error ? e.message : 'Could not create the account.');
     } finally {
       setLoading(false);
     }
@@ -36,12 +41,27 @@ export default function SignInScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
-            <Text style={styles.title}>Welcome back</Text>
-            <Text style={styles.subtitle}>Sign in to save lessons and follow creators.</Text>
+            <Text style={styles.title}>Create account</Text>
+            <Text style={styles.subtitle}>Free. Start learning, or start teaching.</Text>
           </View>
 
           {!isConfigured && <NotConfiguredBanner />}
 
+          <TextField
+            label="Display name"
+            value={displayName}
+            onChangeText={setDisplayName}
+            placeholder="Sabelo Mkhabela"
+            autoComplete="name"
+          />
+          <TextField
+            label="Handle"
+            value={handle}
+            onChangeText={(t) => setHandle(t.toLowerCase())}
+            autoCapitalize="none"
+            placeholder="sabelo"
+            hint="3-20 characters: lowercase letters, numbers or underscore"
+          />
           <TextField
             label="Email"
             value={email}
@@ -56,35 +76,19 @@ export default function SignInScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            autoComplete="current-password"
-            placeholder="••••••••"
+            autoComplete="new-password"
+            placeholder="At least 6 characters"
             error={error}
           />
 
-          <Button
-            label="Sign in"
-            onPress={submit}
-            loading={loading}
-            disabled={!email || !password}
-          />
+          <Button label="Create account" onPress={submit} loading={loading} disabled={!canSubmit} />
 
-          <Link href="/(auth)/sign-up" style={styles.link}>
-            <Text style={styles.linkText}>No account? Create one</Text>
+          <Link href="/(auth)/sign-in" style={styles.link}>
+            <Text style={styles.linkText}>Already have an account? Sign in</Text>
           </Link>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
-  );
-}
-
-export function NotConfiguredBanner() {
-  return (
-    <View style={styles.banner}>
-      <Text style={styles.bannerTitle}>Supabase not configured</Text>
-      <Text style={styles.bannerBody}>
-        Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to .env. See issue #1.
-      </Text>
-    </View>
   );
 }
 
@@ -97,14 +101,4 @@ const styles = StyleSheet.create({
   subtitle: { ...Type.body, color: Colors.textMuted },
   link: { alignSelf: 'center', paddingVertical: Space.md },
   linkText: { ...Type.caption, color: Colors.textMuted },
-  banner: {
-    backgroundColor: Colors.surfaceHi,
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.danger,
-    borderRadius: Radius.sm,
-    padding: Space.md,
-    gap: Space.xs,
-  },
-  bannerTitle: { ...Type.caption, color: Colors.text, fontWeight: '700' },
-  bannerBody: { ...Type.caption, color: Colors.textMuted },
 });
