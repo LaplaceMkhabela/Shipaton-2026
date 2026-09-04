@@ -1,6 +1,14 @@
-import { Placeholder } from '@/components/ui/placeholder';
+import { StatusBar } from 'expo-status-bar';
 
-// Lane A. The vertical lesson feed — see DESIGN.md "Feed item".
+import { FeedPager } from '@/components/feed/feed-pager';
+import { seedLessons } from '@/lib/seed/lessons';
+
+// Lane A. Seed data for now — swaps to getFeed() per API.md once issue #1 lands.
 export default function FeedScreen() {
-  return <Placeholder title="Feed" note="Vertical lesson pager goes here" />;
+  return (
+    <>
+      <StatusBar style="light" />
+      <FeedPager lessons={seedLessons} />
+    </>
+  );
 }
