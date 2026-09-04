@@ -4,7 +4,13 @@
 
 A short-form video app for learning: a vertical feed of byte-sized lessons that funnels viewers from free clips into course creators' paid courses.
 
-Hackathon entry. **Ships to the App Store by 30 Sept 2026.** See [PLAN.md](./PLAN.md) for schedule and lane ownership, [DESIGN.md](./DESIGN.md) for the visual system.
+Hackathon entry. **Ships to the App Store by 30 Sept 2026.**
+
+- [PLAN.md](./PLAN.md) — schedule, lane ownership, risks
+- [API.md](./API.md) — every data operation; the contract between lanes
+- [schema.txt](./schema.txt) — tables and RLS policies
+- [revenuecat.txt](./revenuecat.txt) — monetization model
+- [DESIGN.md](./DESIGN.md) — visual system
 
 ## Hard constraints
 
@@ -34,7 +40,8 @@ src/lib/purchases/       RevenueCat
 src/lib/growth/          OneSignal, Layers, analytics
 src/lib/seed/            seed lessons — lets the feed run with no backend
 src/providers/           app-wide context providers
-supabase/migrations/
+supabase/migrations/     schema + RLS
+supabase/functions/      get-lesson-url, revenuecat-webhook
 ```
 
 Routes are placeholders using `<Placeholder>` from `src/components/ui/placeholder.tsx`. Delete each usage as the real screen lands.
