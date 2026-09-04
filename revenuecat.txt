@@ -1,0 +1,229 @@
+================================================================================
+REVENUECAT — WHAT IT IS AND HOW WE USE IT
+================================================================================
+
+RevenueCat is mandatory for Shipaton eligibility: the app must use the
+RevenueCat SDK to power at least one in-app purchase. So this isn't optional
+plumbing — no RevenueCat, no entry.
+
+
+--------------------------------------------------------------------------------
+1. THE PROBLEM IT SOLVES
+--------------------------------------------------------------------------------
+
+Selling anything inside an iOS app means using Apple's StoreKit. Doing that
+directly is genuinely unpleasant:
+
+  - Apple gives you a signed receipt, not an answer. Working out "does this
+    person have access right now?" means validating that receipt against
+    Apple's servers, handling renewals, refunds, billing retries, grace
+    periods, upgrades, downgrades, and family sharing.
+  - Receipt validation must happen on a server you trust. Doing it on-device
+    is trivially spoofable.
+  - Subscription state changes while your app is closed. Someone cancels on
+    their iPad; your app has to find out.
+  - Sandbox behaves differently from production in ways that waste days.
+
+RevenueCat sits between your app and the store and turns all of that into one
+boolean: does this user have entitlement X? It handles receipt validation,
+stores subscription state, and tells you the answer. It's free below $2.5k/mo
+of tracked revenue, which comfortably covers a hackathon.
+
+
+--------------------------------------------------------------------------------
+2. THE OBJECT MODEL — FOUR WORDS TO LEARN
+--------------------------------------------------------------------------------
+
+PRODUCT
+  The thing configured in App Store Connect with a price. E.g.
+  `com.ourapp.pro.monthly` at $6.99/mo. Apple owns this; RevenueCat imports it.
+
+ENTITLEMENT
+  A level of access. "pro". This is what your CODE checks. Products grant
+  entitlements. The indirection is the whole point: you can change which
+  product grants "pro", add a yearly plan, or run a promo, and the app's
+  `if (entitlements.active['pro'])` never changes.
+
+PACKAGE
+  A slot in a paywall — MONTHLY, ANNUAL, LIFETIME — wrapping one product.
+  Exists so the same paywall code works across platforms and price changes.
+
+OFFERING
+  A named set of packages: what to show on the paywall right now. Configured
+  in the RevenueCat dashboard, changeable WITHOUT AN APP UPDATE. This matters
+  for us: we can retune pricing after judges start testing, with no resubmit.
+
+Flow: Product → wrapped in a Package → grouped in an Offering → purchased →
+grants an Entitlement → your code checks the Entitlement.
+
+
+--------------------------------------------------------------------------------
+3. THE CODE, END TO END
+--------------------------------------------------------------------------------
+
+Initialise once, at app start:
+
+    import Purchases from 'react-native-purchases';
+
+    Purchases.configure({ apiKey: RC_IOS_KEY });
+
+Identify the user so purchases follow them across devices. Call after Supabase
+auth resolves, using the Supabase user id:
+
+    await Purchases.logIn(supabaseUserId);
+
+Show a paywall:
+
+    const offerings = await Purchases.getOfferings();
+    if (offerings.current && offerings.current.availablePackages.length > 0) {
+      // render offerings.current.availablePackages
+    }
+
+Buy:
+
+    try {
+      const { customerInfo } = await Purchases.purchasePackage(pkg);
+      if (typeof customerInfo.entitlements.active['pro'] !== 'undefined') {
+        // unlocked
+      }
+    } catch (e) {
+      if (!e.userCancelled) showError(e);
+    }
+
+Note `e.userCancelled` — someone dismissing the sheet is not an error and must
+not show an error toast. Apple reviewers do this deliberately.
+
+Restore — REQUIRED by App Store review, not optional:
+
+    const customerInfo = await Purchases.restorePurchases();
+
+Check access anywhere:
+
+    const info = await Purchases.getCustomerInfo();
+    const isPro = typeof info.entitlements.active['pro'] !== 'undefined';
+
+
+--------------------------------------------------------------------------------
+4. THE DECISION YOU HAVE TO MAKE — AND MY RECOMMENDATION
+--------------------------------------------------------------------------------
+
+PLAN.md and schema.txt currently assume each course is bought individually,
+with `courses.rc_entitlement_id` per course. There is a hard constraint that
+makes that difficult, and it's better to hit it now than in week three.
+
+THE CONSTRAINT: creators cannot create their own products.
+
+Every in-app purchase product must exist in App Store Connect, with a price
+Apple approves, and each new one goes through review. There is an App Store
+Connect API that can create products programmatically, but they still require
+review and it is not real-time. So a creator uploading a course at 2pm cannot
+have a purchasable $29 product at 2:05pm. A marketplace where creators set
+arbitrary prices is not something the App Store supports without a lot of
+machinery.
+
+Two workable options:
+
+  OPTION A — ALL-ACCESS SUBSCRIPTION  ← recommended
+    One product ($6.99/mo, plus an annual), one entitlement ("pro"). Pro
+    unlocks every paid lesson from every creator. Creators are paid from a
+    revenue pool weighted by watch time — which is exactly what watch_events
+    in schema.txt already measures.
+
+    Why this wins for us:
+      - One product to configure. Ships today.
+      - Recurring revenue is a far stronger HAMM story than one-off unlocks.
+        HAMM judges "long-term sustainability" — subscriptions are the answer
+        that category is looking for.
+      - Creators onboard with zero App Store friction, which is the growth
+        loop the Layers award wants to see.
+      - Judges get a free trial and see everything.
+      - The funnel is unchanged: free clip → course page → paywall. Only what
+        sits behind the paywall differs.
+
+  OPTION B — PER-COURSE PURCHASE
+    Pre-create a fixed ladder of non-consumable products ($9.99 / $19.99 /
+    $49.99), each granting its own entitlement, and let creators pick a tier.
+
+    Costs: every course maps to one of three prices; a dozen products to
+    configure and keep straight; and paid-content gating must check a
+    different entitlement per course. Realistically a day of extra work for a
+    weaker monetization narrative.
+
+RECOMMENDATION: Option A. Take the subscription. It is less work, it ships
+sooner, and it tells the better story in the category we're most likely to
+place in. Revisit per-course after the hackathon, when creator demand is real.
+
+If we take Option A, schema.txt changes slightly: `courses.rc_entitlement_id`
+becomes a constant ('pro') rather than per-course, and the entitlements table
+keys on user alone rather than (user, course). Small edit, worth making before
+Lane B writes the migration.
+
+
+--------------------------------------------------------------------------------
+5. WHAT WE ACTUALLY HAVE TO SET UP
+--------------------------------------------------------------------------------
+
+  1. RevenueCat account + project; add the iOS app with our bundle ID.
+  2. App Store Connect: create the subscription group and products. Requires
+     the paid-apps agreement signed and banking/tax filled in — this blocks
+     purchases entirely and often takes a day or two to clear. Do it FIRST.
+  3. Upload the App Store Connect in-app-purchase key to RevenueCat so it can
+     validate receipts.
+  4. In RevenueCat: create entitlement "pro", attach products, build the
+     default Offering with monthly + annual packages.
+  5. Install: `npx expo install react-native-purchases`. Native module, so it
+     needs an EAS DEV BUILD — it cannot work in Expo Go.
+  6. Wire the webhook: RevenueCat → Supabase edge function → write the
+     entitlements table with the service role. This is what lets RLS gate paid
+     content (see schema.txt).
+  7. Sandbox tester account in App Store Connect for testing purchases.
+
+
+--------------------------------------------------------------------------------
+6. TESTING
+--------------------------------------------------------------------------------
+
+  - Sandbox purchases need a sandbox Apple ID, set in iOS Settings under
+    App Store → Sandbox Account. Do not sign into the real store with it.
+  - Sandbox subscription durations are compressed — a month renews in minutes.
+    Handy for testing renewals, confusing if you don't expect it.
+  - RevenueCat's dashboard shows every sandbox transaction live. When a
+    purchase "does nothing", look there first; it usually tells you exactly
+    what Apple rejected.
+  - Products can take a few hours to propagate after creation, and will return
+    an empty offerings list until they do. An empty paywall on day one is
+    almost always this, not a code bug.
+
+
+--------------------------------------------------------------------------------
+7. PITFALLS THAT COST TEAMS THE DEADLINE
+--------------------------------------------------------------------------------
+
+  - Paid apps agreement not signed → getOfferings() returns nothing and there
+    is no error explaining why. Check this before debugging code.
+  - No restore button → guaranteed App Store rejection.
+  - Prices hardcoded in the UI → rejection, and wrong in every other currency.
+    Always render `package.product.priceString`.
+  - Trusting the client for entitlement state → the app's own check is fine
+    for UI, but paid CONTENT must be gated server-side against the
+    entitlements table, or a hostile client just flips a boolean.
+  - Testing only in Expo Go → the module isn't there; you'll discover this on
+    build day.
+  - Forgetting judges need access → the submission requires a promo code or
+    free trial granting full premium features. Generate promo codes in App
+    Store Connect during M3.
+
+
+--------------------------------------------------------------------------------
+8. WHY THIS MATTERS BEYOND "IT'S REQUIRED"
+--------------------------------------------------------------------------------
+
+HAMM ($20k) scores the smartest monetization strategy — revenue articulation,
+innovation, and long-term sustainability. Our pitch is unusually well suited to
+it: free short lessons are the acquisition channel, watch data decides creator
+payouts, and the subscription is the sustainable layer on top. That's a real
+strategy rather than "we bolted on a paywall."
+
+To argue it we need numbers, which is why watch_events tracks cta_shown and
+cta_tapped. Conversion rate from free lesson to paywall view to purchase is the
+single most persuasive thing we can put on the submission form.

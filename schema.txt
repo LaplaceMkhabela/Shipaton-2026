@@ -1,0 +1,410 @@
+================================================================================
+DATABASE SCHEMA — RECOMMENDATION
+================================================================================
+
+Postgres (Supabase). This is the day-1 contract from PLAN.md: with no backend
+server, these tables and their RLS policies ARE the API. Agree this before
+anyone writes a feature, because every lane codes against it.
+
+Becomes supabase/migrations/0001_init.sql once agreed.
+
+
+--------------------------------------------------------------------------------
+GUIDING PRINCIPLES
+--------------------------------------------------------------------------------
+
+1. The funnel is modelled explicitly. A lesson knows whether it's free bait or
+   paid content, and which course it feeds. If you can't answer "which course
+   does this clip sell?" in one query, the product doesn't work.
+
+2. The feed query must be fast and boring. It runs on every scroll. No joins
+   that count rows, no aggregates computed live.
+
+3. RLS is the security boundary, not the client. Assume a hostile client with
+   your anon key — because it's a public repo and that key ships in the app.
+
+
+--------------------------------------------------------------------------------
+SCHEMA
+--------------------------------------------------------------------------------
+
+-- Extensions
+create extension if not exists "uuid-ossp";
+create extension if not exists citext;
+
+-- Enums
+create type lesson_access as enum ('free', 'paid');
+
+--------------------------------------------------------------------------------
+-- profiles — every user; creators are a flag, not a separate table
+--------------------------------------------------------------------------------
+create table profiles (
+  id            uuid primary key references auth.users(id) on delete cascade,
+  handle        citext unique not null check (handle ~ '^[a-z0-9_]{3,20}$'),
+  display_name  text not null,
+  avatar_url    text,
+  bio           text,
+  is_creator    boolean not null default false,
+  created_at    timestamptz not null default now()
+);
+
+--------------------------------------------------------------------------------
+-- courses — the paid destination
+--------------------------------------------------------------------------------
+create table courses (
+  id                  uuid primary key default uuid_generate_v4(),
+  creator_id          uuid not null references profiles(id) on delete cascade,
+  title               text not null,
+  subtitle            text,
+  description         text,
+  cover_url           text,
+  requires_pro        boolean not null default true,  -- unlocked by the 'pro' subscription
+  published           boolean not null default false,
+  created_at          timestamptz not null default now()
+);
+
+create index on courses (creator_id) where published;
+
+--------------------------------------------------------------------------------
+-- lessons — the feed unit
+--------------------------------------------------------------------------------
+create table lessons (
+  id               uuid primary key default uuid_generate_v4(),
+  creator_id       uuid not null references profiles(id) on delete cascade,
+  course_id        uuid references courses(id) on delete set null,  -- NULLABLE
+  title            text not null,
+  description      text,
+  topic            text,
+  video_path       text not null,      -- storage object path, NOT a public URL
+  thumbnail_url    text,
+  duration_seconds int not null check (duration_seconds between 1 and 90),
+  access           lesson_access not null default 'free',
+  order_index      int not null default 0,
+  published        boolean not null default false,
+  like_count       int not null default 0,   -- denormalised
+  view_count       int not null default 0,   -- denormalised
+  created_at       timestamptz not null default now()
+);
+
+create index on lessons (published, created_at desc);
+create index on lessons (course_id) where published;
+create index on lessons (creator_id) where published;
+
+--------------------------------------------------------------------------------
+-- Engagement
+--------------------------------------------------------------------------------
+create table likes (
+  user_id    uuid not null references profiles(id) on delete cascade,
+  lesson_id  uuid not null references lessons(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, lesson_id)
+);
+create index on likes (lesson_id);
+
+create table saves (
+  user_id    uuid not null references profiles(id) on delete cascade,
+  lesson_id  uuid not null references lessons(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, lesson_id)
+);
+
+create table follows (
+  follower_id uuid not null references profiles(id) on delete cascade,
+  creator_id  uuid not null references profiles(id) on delete cascade,
+  created_at  timestamptz not null default now(),
+  primary key (follower_id, creator_id),
+  check (follower_id <> creator_id)
+);
+create index on follows (creator_id);
+
+--------------------------------------------------------------------------------
+-- watch_events — the growth-loop evidence
+--------------------------------------------------------------------------------
+create table watch_events (
+  id          bigserial primary key,
+  user_id     uuid references profiles(id) on delete set null,  -- nullable: anon
+  lesson_id   uuid not null references lessons(id) on delete cascade,
+  watched_ms  int not null,
+  completed   boolean not null default false,
+  cta_shown   boolean not null default false,
+  cta_tapped  boolean not null default false,
+  created_at  timestamptz not null default now()
+);
+create index on watch_events (lesson_id, created_at desc);
+
+--------------------------------------------------------------------------------
+-- entitlements — mirror of RevenueCat subscription state, written by webhook ONLY
+--------------------------------------------------------------------------------
+create table entitlements (
+  user_id      uuid primary key references profiles(id) on delete cascade,
+  entitlement  text not null default 'pro',
+  rc_event_id  text,
+  granted_at   timestamptz not null default now(),
+  expires_at   timestamptz,   -- null = lifetime / non-expiring
+  updated_at   timestamptz not null default now()
+);
+
+-- The single place that answers "may this user watch paid content?"
+-- security definer so it can read entitlements regardless of the caller's RLS.
+create function has_pro(uid uuid) returns boolean
+  language sql stable security definer as $$
+    select exists (
+      select 1 from entitlements
+      where user_id = uid
+        and entitlement = 'pro'
+        and (expires_at is null or expires_at > now())
+    );
+  $$;
+
+--------------------------------------------------------------------------------
+-- UGC compliance — required by Apple guideline 1.2
+--------------------------------------------------------------------------------
+create table reports (
+  id          uuid primary key default uuid_generate_v4(),
+  reporter_id uuid not null references profiles(id) on delete cascade,
+  lesson_id   uuid not null references lessons(id) on delete cascade,
+  reason      text not null,
+  created_at  timestamptz not null default now()
+);
+
+create table blocks (
+  blocker_id uuid not null references profiles(id) on delete cascade,
+  blocked_id uuid not null references profiles(id) on delete cascade,
+  primary key (blocker_id, blocked_id),
+  check (blocker_id <> blocked_id)
+);
+
+
+--------------------------------------------------------------------------------
+-- ROW LEVEL SECURITY
+--------------------------------------------------------------------------------
+
+alter table profiles      enable row level security;
+alter table courses       enable row level security;
+alter table lessons       enable row level security;
+alter table likes         enable row level security;
+alter table saves         enable row level security;
+alter table follows       enable row level security;
+alter table watch_events  enable row level security;
+alter table entitlements  enable row level security;
+alter table reports       enable row level security;
+alter table blocks        enable row level security;
+
+-- Anyone can read published lessons, minus blocked creators
+create policy lessons_read_published on lessons for select
+  using (
+    published
+    and not exists (
+      select 1 from blocks
+      where blocker_id = auth.uid() and blocked_id = lessons.creator_id
+    )
+  );
+
+-- Creators manage only their own lessons
+create policy lessons_write_own on lessons for all
+  using (creator_id = auth.uid())
+  with check (creator_id = auth.uid());
+
+create policy courses_read_published on courses for select using (published);
+create policy courses_write_own on courses for all
+  using (creator_id = auth.uid()) with check (creator_id = auth.uid());
+
+create policy profiles_read_all on profiles for select using (true);
+create policy profiles_write_own on profiles for update
+  using (id = auth.uid()) with check (id = auth.uid());
+
+-- Engagement: you may only act as yourself
+create policy likes_own on likes for all
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy saves_own on saves for all
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy follows_own on follows for all
+  using (follower_id = auth.uid()) with check (follower_id = auth.uid());
+
+-- Entitlements are readable by their owner and writable by NOBODY via the API
+create policy entitlements_read_own on entitlements for select
+  using (user_id = auth.uid());
+-- (no insert/update policy: only the service role, via the RevenueCat webhook)
+
+create policy watch_insert on watch_events for insert
+  with check (user_id = auth.uid() or user_id is null);
+create policy reports_insert on reports for insert
+  with check (reporter_id = auth.uid());
+create policy blocks_own on blocks for all
+  using (blocker_id = auth.uid()) with check (blocker_id = auth.uid());
+
+
+--------------------------------------------------------------------------------
+-- COUNTER TRIGGER (keeps like_count honest)
+--------------------------------------------------------------------------------
+create function bump_like_count() returns trigger language plpgsql as $$
+begin
+  if tg_op = 'INSERT' then
+    update lessons set like_count = like_count + 1 where id = new.lesson_id;
+  elsif tg_op = 'DELETE' then
+    update lessons set like_count = like_count - 1 where id = old.lesson_id;
+  end if;
+  return null;
+end $$;
+
+create trigger likes_count_trg after insert or delete on likes
+  for each row execute function bump_like_count();
+
+
+================================================================================
+JUSTIFICATIONS
+================================================================================
+
+WHY creators ARE profiles, NOT A SEPARATE TABLE
+   Anyone can become a creator by uploading — that's the growth loop. A separate
+   creators table would mean a join on every feed row and a second set of RLS
+   policies to keep in sync. One boolean costs nothing and removes a join from
+   the hottest query in the app. If creators later need payout details, those go
+   in a separate creator_payouts table rather than splitting identity.
+
+WHY lessons.course_id IS NULLABLE
+   This is the most important column in the schema. A lesson without a course is
+   pure top-of-funnel content — a creator posting something useful with nothing
+   to sell yet. Forcing every lesson into a course would mean creators must build
+   a whole course before posting anything, which kills the supply side. Nullable
+   means the funnel is opt-in per lesson, and `course_id is not null` is exactly
+   the query that decides whether to show the CTA card.
+
+WHY access IS AN ENUM AND NOT A BOOLEAN
+   'free' | 'paid' reads correctly at the call site and leaves room for a third
+   state ('preview', 'subscriber-only') without a migration. A boolean named
+   is_free inverts awkwardly in policies and reads badly in the client.
+
+WHY like_count IS DENORMALISED
+   The feed renders like counts on every card. `select count(*) from likes` per
+   lesson per scroll is the classic way to make a video feed feel broken. A
+   trigger-maintained integer is one column read. The tradeoff is that the
+   counter can drift if you ever bulk-delete likes outside the trigger — a
+   periodic reconciliation query is the fix, and it doesn't matter at hackathon
+   scale.
+
+WHY video_path AND NOT video_url
+   Storing the storage object path rather than a baked-in public URL means the
+   delivery mechanism can change without a data migration. If playback is rough
+   and we escalate to Cloudflare Stream (risk R3 in PLAN.md), or if paid videos
+   move to signed URLs, only the code that resolves a path to a URL changes.
+   Baking full public URLs into rows is a decision you can't take back cheaply.
+
+WHY duration IS CONSTRAINED TO 90 SECONDS
+   A database constraint is the only place a rule like this actually holds. The
+   player is tuned for short clips, the storage plan assumes small files, and the
+   product is "byte-sized." Enforcing it in the client only means the one time
+   someone uploads through a script, the feed breaks.
+
+WHY ONE SUBSCRIPTION INSTEAD OF PER-COURSE PURCHASES
+   Originally this schema gave every course its own RevenueCat entitlement and
+   App Store product. That runs into a hard platform constraint: creators cannot
+   create their own in-app purchases. Every product must exist in App Store
+   Connect at an Apple-approved price and pass review, so a creator publishing a
+   course at 2pm cannot have a purchasable product at 2:05pm.
+
+   So access is one entitlement — 'pro' — unlocking every paid lesson from every
+   creator, with creators paid from a revenue pool weighted by watch time. That
+   is what watch_events measures, and it means a creator can onboard and publish
+   with zero App Store friction, which is the growth loop the Layers award wants
+   to see. It's also the stronger HAMM story: recurring revenue answers "long-
+   term sustainability" in a way one-off unlocks don't.
+
+   courses.requires_pro survives so a creator can still publish a fully free
+   course as a lead magnet. See revenuecat.txt for the full reasoning.
+
+WHY entitlements MIRRORS REVENUECAT INSTEAD OF ASKING IT
+   RLS policies are SQL — they cannot call the RevenueCat API. To gate paid
+   content in the database, the database has to know who has access. So the
+   RevenueCat webhook writes here via a Supabase edge function using the service
+   role, and the table has a read policy but deliberately NO insert or update
+   policy. A hostile client holding the anon key cannot grant itself pro. This is
+   the single most security-relevant decision in the schema.
+
+   One row per user, not per user-and-course: with a single entitlement the
+   subscription IS the state. expires_at carries renewal, and the webhook simply
+   upserts on every RevenueCat event.
+
+WHY has_pro() IS A FUNCTION AND NOT AN INLINE SUBQUERY
+   The access rule gets used in policies, in the signed-URL edge function, and
+   in any future paid surface. Writing it three times guarantees the three
+   copies eventually disagree — and the one that drifts is a paywall someone
+   walks through. One security-definer function, one rule.
+
+WHY watch_events EXISTS AT ALL
+   Two reasons, both worth money. The Growth Loop award wants evidence of a
+   designed loop with measured outcomes — cta_shown and cta_tapped are literally
+   the funnel conversion rate. And HAMM asks for conversion numbers in the
+   submission. Without this table you'll be writing "we think it converted well"
+   on the DevPost form.
+
+WHY user_id IS NULLABLE ON watch_events
+   People will scroll before signing up — that's the point of a public feed. If
+   the column were NOT NULL you'd lose exactly the top-of-funnel data that proves
+   the funnel works.
+
+WHY reports AND blocks ARE IN THE SCHEMA FROM DAY ONE
+   Apple guideline 1.2 rejects user-generated-content apps without a report
+   mechanism, a way to block abusive users, and moderation. This is the most
+   common rejection reason for apps like ours. Two trivial tables now versus a
+   rejection on 25 September with no time to resubmit.
+
+WHY UUIDs FOR PKs, BIGSERIAL FOR watch_events
+   UUIDs on anything the client references: they don't leak how many users or
+   lessons you have, and the client can generate one before insert for optimistic
+   UI. watch_events is append-only, never referenced by URL, and high-volume, so
+   a bigserial is smaller and faster to index.
+
+WHY citext WITH A REGEX FOR handle
+   Handles are compared case-insensitively — @Sabelo and @sabelo must not be two
+   people. Doing that with lower() everywhere invites the one place someone
+   forgets. The regex blocks the punctuation that makes handles unsafe in URLs.
+
+WHY BLOCKS ARE FILTERED IN THE READ POLICY
+   Putting the block check in the RLS policy rather than the client query means
+   it holds for every code path, including ones written later by whoever isn't
+   thinking about it. Security rules belong where they can't be forgotten.
+
+
+================================================================================
+OPEN ISSUE YOU MUST DECIDE — PAID VIDEO ACCESS
+================================================================================
+
+Ticket #1 asks for a PUBLIC storage bucket. That is correct for free lessons and
+WRONG for paid ones, and the schema above cannot fix it on its own.
+
+With a public bucket, the object URL IS the access control. RLS can hide the row
+containing video_path, but if anyone ever obtains the URL — a shared link, a
+proxy, a leaked network log — the paid video plays for everyone, forever. You
+cannot revoke a public Supabase Storage URL.
+
+Recommended fix, roughly half a day:
+
+  - Bucket `lessons-free`   → public. Feed content, served straight from CDN.
+  - Bucket `lessons-paid`   → private. Course content.
+  - A Supabase edge function `get-lesson-url` that calls has_pro(auth.uid()) and
+    returns a short-lived signed URL, or 403.
+
+The client then never holds a permanent paid-video URL. This matters beyond
+correctness: HAMM judges monetization strategy, and a paywall that a curious
+judge can walk straight around is a bad look in the category you're most likely
+to place in.
+
+If you'd rather not spend the half day, the honest fallback is to make every
+lesson free and monetise on a subscription for features rather than gating
+video — but that's a different product than the one in PLAN.md.
+
+
+================================================================================
+DELIBERATELY NOT INCLUDED
+================================================================================
+
+- Comments / replies. Doubles the moderation surface for Apple review and adds
+  nothing to the funnel story. Post-hackathon.
+- Playlists, categories, tags beyond a single topic string. Add when search
+  needs them.
+- Soft deletes. `published` covers the hackathon need; audit trails don't.
+- A feed-ranking table. Order by recency and engagement first; build ranking
+  only if the feed feels stale with real content in it.
+- Notification records. OneSignal holds that state; mirroring it is work with
+  no payoff in this window.
