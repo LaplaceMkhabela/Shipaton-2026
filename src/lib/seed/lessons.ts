@@ -34,14 +34,14 @@ export type FeedLesson = {
   course: SeedCourse | null;
 };
 
-const CREATORS: Record<string, SeedCreator> = {
+export const CREATORS: Record<string, SeedCreator> = {
   thandi: { id: 'c1', handle: 'thandishoots', displayName: 'Thandi Nkosi' },
   marco: { id: 'c2', handle: 'marcocooks', displayName: 'Marco Bianchi' },
   ayesha: { id: 'c3', handle: 'ayeshafinance', displayName: 'Ayesha Patel' },
   dave: { id: 'c4', handle: 'davesixstrings', displayName: 'Dave Mokoena' },
 };
 
-const COURSES: Record<string, SeedCourse> = {
+export const COURSES: Record<string, SeedCourse> = {
   photo: { id: 'co1', title: 'Phone Photography That Looks Expensive', lessonCount: 14 },
   knife: { id: 'co2', title: 'Knife Skills in One Weekend', lessonCount: 9 },
   money: { id: 'co3', title: 'Your First R10,000 Invested', lessonCount: 11 },

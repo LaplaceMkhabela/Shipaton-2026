@@ -5,6 +5,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Space, TabularNums, Type } from '@/constants/theme';
 import type { FeedLesson } from '@/lib/seed/lessons';
+import { ActionRail } from './action-rail';
+import { CourseCtaCard } from './course-cta-card';
+
+/** The CTA card enters here, not at the start. See CourseCtaCard for why. */
+const CTA_AT = 0.6;
 
 type Props = {
   lesson: FeedLesson;
@@ -63,7 +68,18 @@ function FeedItemImpl({ lesson, isActive, height }: Props) {
       {/* Text over video always sits on a scrim — see DESIGN.md */}
       <View style={styles.scrim} pointerEvents="none" />
 
-      <View style={styles.overlay} pointerEvents="none">
+      <View style={styles.arail}>
+        <ActionRail creator={lesson.creator} likeCount={lesson.likeCount} />
+      </View>
+
+      <View style={styles.overlay}>
+        {lesson.course ? (
+          <CourseCtaCard
+            course={lesson.course}
+            visible={isActive && progress >= CTA_AT}
+            freeCount={3}
+          />
+        ) : null}
         <Text style={styles.handle}>@{lesson.creator.handle}</Text>
         <Text style={styles.title} numberOfLines={2}>
           {lesson.title}
@@ -101,10 +117,12 @@ const styles = StyleSheet.create({
   overlay: {
     position: 'absolute',
     left: Space.md,
-    right: Space.xxl,
+    // Clears the action rail so the title never runs under the icons.
+    right: 72,
     bottom: Space.xl,
     gap: Space.xs,
   },
+  arail: { position: 'absolute', right: Space.sm, bottom: Space.xxl + Space.md },
   handle: { ...Type.caption, color: Colors.free, fontWeight: '700' },
   title: { ...Type.title, color: Colors.text },
   meta: { ...Type.micro, color: Colors.textMuted, ...TabularNums },
