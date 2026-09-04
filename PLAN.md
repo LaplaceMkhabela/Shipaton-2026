@@ -73,12 +73,12 @@ A scrolling video app with eight demo clips looks broken. Judges scroll. **30+ g
 Each lane owns directories. Cross-lane changes go through the contract, not by editing someone else's files.
 
 ### Lane A — Feed & Experience
-**Owns:** `src/app/(feed)/`, `src/components/feed/`, `src/components/ui/`, `src/constants/theme.ts`
+**Owns:** `src/app/(tabs)/`, `src/components/feed/`, `src/components/ui/`, `src/constants/theme.ts`
 
 The product's soul. Vertical pager, `expo-video` player lifecycle (only the active item plays, neighbours preload), gesture handling, like/save, creator overlay, the course CTA card, and every animation in DESIGN.md. Owns the Design award.
 
 ### Lane B — Backend & Creator
-**Owns:** `supabase/`, `src/lib/supabase/`, `src/app/(creator)/`, `src/hooks/queries/`
+**Owns:** `supabase/`, `src/lib/supabase/`, `src/app/(auth)/`, `src/app/(tabs)/create.tsx`, `src/components/creator/`, `src/hooks/queries/`
 
 Schema, RLS policies, migrations, auth, the upload pipeline (pick → compress → upload → row), course/lesson CRUD, creator dashboard. Owns the seed dataset that unblocks Lane A.
 

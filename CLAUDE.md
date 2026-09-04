@@ -17,16 +17,27 @@ Hackathon entry. **Ships to the App Store by 30 Sept 2026.** See [PLAN.md](./PLA
 ## Layout
 
 ```
-src/app/            expo-router routes (file-based)
-src/components/     UI; feed/ is Lane A territory
-src/constants/      theme.ts — design tokens, see DESIGN.md
-src/hooks/queries/  TanStack Query hooks
-src/lib/supabase/   client + generated types
-src/lib/purchases/  RevenueCat
-src/lib/growth/     OneSignal, Layers, analytics
-src/lib/seed/       seed lessons — lets the feed run with no backend
+src/app/
+  _layout.tsx       root stack + providers, dark theme
+  (tabs)/           index=feed, search, create, profile
+  (auth)/           sign-in
+  course/[id]       funnel destination
+  creator/[id]
+  paywall/[courseId]  modal
+src/components/feed/     Lane A: pager, player, CTA card, action rail
+src/components/creator/  Lane B: upload form, lesson rows
+src/components/ui/       shared primitives
+src/constants/theme.ts   design tokens, see DESIGN.md
+src/hooks/queries/       TanStack Query hooks
+src/lib/supabase/        client + generated types
+src/lib/purchases/       RevenueCat
+src/lib/growth/          OneSignal, Layers, analytics
+src/lib/seed/            seed lessons — lets the feed run with no backend
+src/providers/           app-wide context providers
 supabase/migrations/
 ```
+
+Routes are placeholders using `<Placeholder>` from `src/components/ui/placeholder.tsx`. Delete each usage as the real screen lands.
 
 `@/*` maps to `src/*`. `@/assets/*` maps to `assets/*`.
 

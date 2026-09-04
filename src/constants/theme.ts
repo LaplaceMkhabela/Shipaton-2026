@@ -1,65 +1,62 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Design tokens. See DESIGN.md for the reasoning behind them.
+ *
+ * Dark-only by design: the video is the interface, and a light theme over
+ * full-bleed video is a fight we don't need to have.
+ *
+ * The one rule worth remembering: colour encodes the funnel.
+ * `free` (lime) marks open content, `paid` (violet) marks premium surfaces.
+ * Never cross them.
  */
 
-import '@/global.css';
-
-import { Platform } from 'react-native';
-
 export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-  },
+  // Surfaces — near-black, not pure black; pure black crushes video edges on OLED
+  bg: '#0A0A0B',
+  surface: '#141417',
+  surfaceHi: '#1E1E23',
+  border: '#2A2A31',
+
+  // Text
+  text: '#FFFFFF',
+  textMuted: '#A1A1AA',
+  textFaint: '#71717A',
+
+  // Funnel
+  free: '#C6FF3D',
+  freeDim: '#8FBF14',
+  paid: '#7C5CFF',
+  paidDim: '#5B3FD6',
+
+  // Status
+  danger: '#FF4D5E',
+  success: '#3DD68C',
+
+  // Scrims over video
+  scrimTop: 'rgba(10,10,11,0.55)',
+  scrimBottom: 'rgba(10,10,11,0.85)',
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
-
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
-
-export const Spacing = {
-  half: 2,
-  one: 4,
-  two: 8,
-  three: 16,
-  four: 24,
-  five: 32,
-  six: 64,
+export const Type = {
+  hero: { fontSize: 32, lineHeight: 36, fontWeight: '800' },
+  title: { fontSize: 22, lineHeight: 27, fontWeight: '700' },
+  body: { fontSize: 16, lineHeight: 23, fontWeight: '500' },
+  caption: { fontSize: 14, lineHeight: 19, fontWeight: '500' },
+  micro: { fontSize: 12, lineHeight: 15, fontWeight: '600' },
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+export const Space = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 } as const;
+
+export const Radius = { sm: 8, md: 14, lg: 22, pill: 999 } as const;
+
+export const Motion = {
+  instant: 120,
+  quick: 220,
+  settle: 380,
+  spring: { damping: 18, stiffness: 220, mass: 0.9 },
+} as const;
+
+/** Minimum touch target, per Apple HIG. Never go below this. */
+export const MinTouchTarget = 44;
+
+/** Counts and durations use tabular figures so they don't jitter as they tick. */
+export const TabularNums = { fontVariant: ['tabular-nums' as const] };
