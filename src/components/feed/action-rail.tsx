@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, MinTouchTarget, Radius, Space, TabularNums, Type } from '@/constants/theme';
-import type { SeedCreator } from '@/lib/seed/lessons';
+import type { FeedCreator } from '@/lib/supabase/feed';
 
 /**
  * Four actions, deliberately. Every extra icon competes with the CTA card,
@@ -18,7 +18,7 @@ export function ActionRail({
   likeCount,
   onOpenCreator,
 }: {
-  creator: SeedCreator;
+  creator: FeedCreator;
   likeCount: number;
   onOpenCreator?: () => void;
 }) {

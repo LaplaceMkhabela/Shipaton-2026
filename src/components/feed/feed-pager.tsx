@@ -1,11 +1,19 @@
 import { useCallback, useRef, useState } from 'react';
-import { FlatList, StyleSheet, View, type ViewToken } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, View, type ViewToken } from 'react-native';
 
-import { Colors } from '@/constants/theme';
-import type { FeedLesson } from '@/lib/seed/lessons';
+import { Colors, Space } from '@/constants/theme';
+import type { FeedLesson } from '@/lib/supabase/feed';
 import { FeedItem } from './feed-item';
 
-export function FeedPager({ lessons }: { lessons: FeedLesson[] }) {
+export function FeedPager({
+  lessons,
+  onEndReached,
+  isFetchingNextPage,
+}: {
+  lessons: FeedLesson[];
+  onEndReached?: () => void;
+  isFetchingNextPage?: boolean;
+}) {
   // Measured, not Dimensions.get('window'). Window height ignores the native
   // tab bar and safe-area insets, which makes every snap land slightly off.
   const [height, setHeight] = useState(0);
@@ -59,6 +67,13 @@ export function FeedPager({ lessons }: { lessons: FeedLesson[] }) {
           initialNumToRender={2}
           maxToRenderPerBatch={2}
           removeClippedSubviews
+          onEndReached={onEndReached}
+          onEndReachedThreshold={2}
+          ListFooterComponent={
+            isFetchingNextPage ? (
+              <ActivityIndicator style={styles.footer} color={Colors.text} />
+            ) : null
+          }
         />
       ) : null}
     </View>
@@ -67,4 +82,5 @@ export function FeedPager({ lessons }: { lessons: FeedLesson[] }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
+  footer: { paddingVertical: Space.md },
 });

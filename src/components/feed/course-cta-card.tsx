@@ -9,7 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Colors, Motion, Radius, Space, TabularNums, Type } from '@/constants/theme';
-import type { SeedCourse } from '@/lib/seed/lessons';
+import type { FeedCourse } from '@/lib/supabase/feed';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -26,7 +26,7 @@ export function CourseCtaCard({
   visible,
   freeCount,
 }: {
-  course: SeedCourse;
+  course: FeedCourse;
   visible: boolean;
   freeCount: number;
 }) {

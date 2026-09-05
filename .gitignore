@@ -34,6 +34,9 @@ yarn-error.*
 .env
 .env*.local
 
+# Supabase CLI local state — holds the project ref and pooler connection URL
+supabase/.temp/
+
 # typescript
 *.tsbuildinfo
 

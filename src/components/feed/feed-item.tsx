@@ -4,7 +4,7 @@ import { memo, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Space, TabularNums, Type } from '@/constants/theme';
-import type { FeedLesson } from '@/lib/seed/lessons';
+import type { FeedLesson } from '@/lib/supabase/feed';
 import { ActionRail } from './action-rail';
 import { CourseCtaCard } from './course-cta-card';
 
