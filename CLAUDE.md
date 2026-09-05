@@ -16,8 +16,8 @@ Hackathon entry. **Ships to the App Store by 30 Sept 2026.**
 
 - **Expo SDK 57 / React Native 0.86 / React 19.2.** APIs changed. Read https://docs.expo.dev/versions/v57.0.0/ before writing against any Expo module — do not write from memory.
 - **`expo-video`, never `expo-av`.** `useVideoPlayer(source, setup)` + `<VideoView player={...} />`. Player events come from `useEvent`/`useEventListener` imported from `expo`.
-- **iOS only** for the hackathon window. Don't spend time on Android-specific paths.
-- **No Expo Go.** RevenueCat, OneSignal, and Layers are native modules; everything runs on an EAS development build.
+- **Android is the target**, not iOS. Samsung Galaxy Store is the store route and the Apple developer programme is out of budget. Tab icons need `md` alongside `sf`; check anything platform-specific on Android.
+- **No Expo Go** once RevenueCat lands — it's a native module. Until then Expo Go on Android is fine for feed work. Builds come from EAS, which is free and needs no store account.
 - **`main` must stay TestFlight-able.** A broken `main` is the team's only priority until it's fixed.
 
 ## Layout

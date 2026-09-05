@@ -1,7 +1,18 @@
 # Project Plan — Shipaton 2026
 
-> **Deadline: Wed 30 Sept 2026, 11:45pm PDT. Today is Fri 4 Sept. 26 days.**
-> The app must be **fully published** on the App Store by then — "in review" does not count.
+> **Deadline: Wed 30 Sept 2026, 11:45pm PDT.**
+>
+> **Primary route: Next Gen Award — no app store required.** We have a student on
+> the team, and the rules state plainly: *"No paid Apple or Google developer
+> account or store release is required."* A public open-source repo and a demo
+> video are the deliverable. This removes App Review from the critical path
+> entirely.
+>
+> **Secondary route: Samsung Galaxy Store — free to join, free to publish.**
+> Unlocks the store-dependent categories. Nice to have, not load-bearing.
+>
+> We are **not** shipping to Apple. The $99 developer programme is out of budget,
+> and nothing about the plan depends on it any more.
 
 ## Context
 
@@ -11,9 +22,11 @@ See [DESIGN.md](./DESIGN.md) for the visual system and [CLAUDE.md](./CLAUDE.md) 
 
 ## The one thing that matters
 
-Most Shipaton entries fail on **shipping**, not on code. An unpublished app scores zero regardless of quality. Everything below is arranged so that a working build reaches TestFlight on **day 2**, and every subsequent day ends with `main` still shippable.
+With Next Gen as the primary route, the thing that scores is a **working app plus a convincing demo video** — not a store listing. Judges assess "meaningful progress toward a working app" and "thoughtful use of RevenueCat," so a running Android build we can screen-record is the deliverable.
 
-**Hard gate: submit to App Review by Sun 20 Sept.** That leaves 10 days of buffer for rejection and resubmission. Apple review is usually 24–48h, but a rejection on 28 Sept with no buffer ends the run.
+**Hard gate: a recordable end-to-end build by Sat 19 Sept.** That leaves eleven days to cut the video, write the submission, and — if Samsung comes through — publish there too.
+
+Three things must be demonstrably working on camera: the feed, the funnel into a course, and a RevenueCat purchase. Everything else is optional.
 
 ## Target categories
 
@@ -21,13 +34,16 @@ Judges penalise apps jammed into every category. We commit to these, in priority
 
 | Category | Prize | Why us | Cost |
 |---|---|---|---|
+| **Next Gen** (students only) | $20k | **Primary.** No store release required. Needs a student email on the Devpost account, a public repo with a visible open-source licence, and a demo video. We already have the repo and the MIT licence. | Free |
 | **HAMM** (smartest monetization) | $20k | The app *is* a monetization funnel. Strongest natural fit. | Free — it's the core concept |
 | **Growth Loop** (Layers) | $15k | Free lesson → paid course → creator posts more free lessons is a textbook loop. | Layers SDK + documented experiment |
 | **Keep Them Coming Back** (OneSignal) | $25k | "Your next lesson is ready" is a real retention hook for learning. | OneSignal SDK + campaign design |
 | **RevenueCat Design** | $20k | Rewards feed polish we need anyway. | Free — byproduct of doing it well |
 | **#BuildInPublic** | $30k | Costs only social posts, starting today. | ~10 min/day |
 
-**Cut order if time slips:** Layers first, then OneSignal. Never cut HAMM — it's free.
+**Cut order if time slips:** Layers first, then OneSignal, then the Samsung listing. Never cut Next Gen or HAMM — both are free and Next Gen is the entry that doesn't depend on anyone else's approval queue.
+
+**Store-dependent categories** (Grand Prize, Design, Growth Loop, OneSignal) require a live Galaxy Store listing. Next Gen does not. If Samsung's review or seller verification stalls, we still have a complete entry.
 
 Every category needs its own answer in the DevPost submission. Assign these to the Ship Captain on day 1, not on 30 Sept.
 
@@ -37,6 +53,7 @@ Already scaffolded: Expo SDK 57, React Native 0.86, React 19.2, expo-router, Typ
 
 | Concern | Choice | Note |
 |---|---|---|
+| Platform | **Android** | Galaxy Store target. EAS builds it in the cloud, free. |
 | Video playback | `expo-video` | SDK 57 API: `useVideoPlayer` + `<VideoView>`. Not `expo-av`. |
 | Backend | Supabase | Postgres + Auth + Storage + RLS in one |
 | Video storage | Supabase Storage | MP4, 720p, `faststart`, hard 60s cap. See risk R3. |
@@ -49,20 +66,25 @@ Already scaffolded: Expo SDK 57, React Native 0.86, React 19.2, expo-router, Typ
 | Styling | `StyleSheet` + tokens in `src/constants/theme.ts` | No NativeWind — new build config is risk we don't need |
 | Builds | EAS Build + TestFlight | Dev build required from day 1 |
 
-**Expo Go is dead to us.** RevenueCat, OneSignal, and Layers are native modules. Everyone runs an **EAS development build** on a real device from day 1. Do not waste a week building against Expo Go and discover this later.
+**Platform is now Android, not iOS.** Samsung Galaxy Store ships Android, and EAS builds Android in the cloud with no Mac and no paid account. Everything already written is cross-platform; the tab bar and video player need checking on Android, and the SF Symbols tab icons need Android equivalents (`md` prop alongside `sf`).
+
+**Expo Go is dead to us once RevenueCat lands.** It's a native module. Until then Expo Go on an Android phone is a legitimate way to test the feed — see the testing notes. After that, an **EAS development build**, which is free and needs no store account.
 
 ## Schedule
 
 | Milestone | Date | Definition of done |
 |---|---|---|
-| **M0 — Ship rails** | Sat 5 Sept | Apple account live, bundle ID + App Store Connect record created, RevenueCat products configured, Supabase project up, EAS dev build on a real device, **template app on TestFlight** |
-| **M1 — Vertical slice** | Fri 11 Sept | Feed plays seeded lessons smoothly, auth works, paywall gates a course via a real RevenueCat entitlement |
-| **M2 — Full loop** | Wed 16 Sept | Creator upload, course page, OneSignal campaign, Layers events, analytics |
-| **M3 — Content + polish freeze** | Sat 19 Sept | 30+ real lessons seeded, animations landed, store assets done, no new features |
-| **M4 — Submit to Apple** | **Sun 20 Sept** | Binary in App Review |
-| **M5 — DevPost** | Fri 25 Sept | Video + description + all category answers submitted, 5 days early |
+| **M0 — Rails** | Sun 7 Sept | Supabase project live (#1), Samsung seller account registered, RevenueCat account + products, **EAS dev build running on a real Android phone** |
+| **M1 — Vertical slice** | Fri 11 Sept | Feed plays seeded lessons smoothly on device, auth works, paywall gates a course via a real RevenueCat entitlement |
+| **M2 — Full loop** | Wed 16 Sept | Creator upload, OneSignal campaign, Layers events, analytics |
+| **M3 — Recordable build** | **Sat 19 Sept** | 30+ real lessons seeded, animations landed, no new features. The whole funnel demonstrable on camera. |
+| **M4 — Demo video + repo polish** | Wed 23 Sept | Under 2 min, states the app and target categories in the first 30s. README explains how to run it — Next Gen judges read the repo. |
+| **M5 — DevPost** | Fri 25 Sept | Submitted from the **student's** Devpost account with a qualifying academic email, all category answers written |
+| **M6 — Galaxy Store** | if it lands | Bonus. Unlocks store-dependent categories; nothing depends on it. |
 
-M5 is deliberately 5 days before the real deadline. Treat 30 Sept as fiction.
+M5 is deliberately 5 days early. Treat 30 Sept as fiction.
+
+**The Devpost account must be the student's**, with an academic email — eligibility is checked against the email domain. Submitting from the wrong account forfeits Next Gen, which is now our primary entry.
 
 ### Why content is a milestone
 
@@ -112,19 +134,20 @@ Lanes only parallelise if the seams are fixed first. Together, in one sitting on
 
 | # | Risk | Mitigation |
 |---|---|---|
-| R1 | **App Review rejection near the deadline** | Submit 20 Sept. UGC apps get scrutiny — see R2. |
-| R2 | **Apple 1.2 (UGC) rejection** | Apps with user uploads *must* ship: a report button, a block-user action, a EULA, and moderation. Non-negotiable, and cheap if built in M2. Apple rejects for this routinely. |
+| R1 | **Repo isn't judgeable** | Next Gen judges read the repository. It must have a visible open-source licence (MIT, already at root), all source and assets, and a README explaining how to run it. Currently the README describes the product but not how to build it — fix before M4. |
+| R2 | **Samsung commercial-seller verification stalls** | Selling in-app on Galaxy Store may need a D-U-N-S number and bank verification, up to 10 business days each. Mitigation: publish the app free and put the RevenueCat purchase through **Web Billing**, which the rules accept ("in-app **or web** purchase"). Doesn't block Next Gen either way. |
 | R3 | **Janky playback kills the Design award** | Cap uploads at 60s/720p, preload ±1 video, show a thumbnail poster while loading. If it's still rough after M1, escalate to Cloudflare Stream for HLS — budget one day. |
 | R4 | **Empty-feed demo** | Content is milestone M3. Start recording in M1. |
-| R5 | **RevenueCat only works in a dev build** | EAS dev build on day 1. Guard the SDK behind a capability check so the app degrades instead of crashing. |
-| R6 | **Judges can't test the paid tier** | Submission requires a promo code or free trial granting full premium access. Configure in App Store Connect during M3. |
+| R5 | **RevenueCat only works in a dev build** | EAS dev build on day 1 — free, no store account. Guard the SDK behind a capability check so the app degrades instead of crashing. |
+| R6 | **Judges can't try the paid tier** | For Next Gen they run it from the repo, so the README must document how to reach the paywall. If we do publish to Samsung, add a promo code or free trial. |
+| R8 | **UGC moderation** | No longer an App Review gate, but report/block/EULA stay in — they're cheap, and "thoughtful product care" is an explicit Next Gen judging criterion. |
 | R7 | **Over-targeting categories** | Five is already the ceiling. Cut per the order above rather than adding. |
 
 ## Immediate next actions
 
-1. Decide the app name — blocks App Store Connect, which blocks everything
-2. Buy/confirm the Apple Developer account today
-3. Create the App Store Connect record and bundle ID
-4. Write the schema migration and seed dataset together
-5. Get an EAS dev build onto a physical device
+1. **Create the Devpost account using the student's academic email** — this is what makes Next Gen possible, and it costs nothing
+2. Decide the app name
+3. Finish issue #1 (Supabase) — auth is written but has never run against a real backend
+4. Get an EAS dev build onto a physical Android phone (free, no store account)
+5. Register the free Samsung Seller Portal account
 6. Post the first #BuildInPublic update
