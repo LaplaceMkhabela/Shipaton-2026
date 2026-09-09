@@ -13,12 +13,14 @@
  * from the `lessons.duration_seconds` column once issue #2 lands.
  */
 
-import { driveVideo, type DriveKey } from './drive';
+import { driveImage, driveVideo, type DriveKey } from './drive';
 
 export type SeedCreator = {
   id: string;
   handle: string;
   displayName: string;
+  /** Avatar — creator.png from the course folder in Drive. */
+  imageUrl: string;
 };
 
 export type SeedCourse = {
@@ -43,9 +45,9 @@ export type FeedLesson = {
 };
 
 export const CREATORS: Record<string, SeedCreator> = {
-  voss: { id: 'c1', handle: 'elaravoss', displayName: 'Dr. Elara Voss' },
-  keys: { id: 'c2', handle: 'juliankeys', displayName: 'Julian Keys' },
-  vance: { id: 'c3', handle: 'eliasvance', displayName: 'Elias Vance' },
+  voss: { id: 'c1', handle: 'elaravoss', displayName: 'Dr. Elara Voss', imageUrl: driveImage('calc_creator_image') },
+  keys: { id: 'c2', handle: 'juliankeys', displayName: 'Julian Keys', imageUrl: driveImage('piano_creator_image') },
+  vance: { id: 'c3', handle: 'eliasvance', displayName: 'Elias Vance', imageUrl: driveImage('money_creator_image') },
 };
 
 export const COURSES: Record<string, SeedCourse> = {

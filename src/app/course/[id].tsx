@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -49,9 +50,17 @@ export default function CourseScreen() {
         <View style={styles.head}>
           <Text style={styles.title}>{course.title}</Text>
           <Text style={styles.subtitle}>{course.subtitle}</Text>
-          <Text style={styles.meta}>
-            @{course.creator.handle} · {course.lessonCount} lessons · {course.totalLabel}
-          </Text>
+          <View style={styles.creatorRow}>
+            <Image
+              source={{ uri: course.creator.imageUrl }}
+              style={styles.creatorAvatar}
+              contentFit="cover"
+              accessibilityLabel={`${course.creator.displayName}'s avatar`}
+            />
+            <Text style={styles.meta}>
+              @{course.creator.handle} · {course.lessonCount} lessons · {course.totalLabel}
+            </Text>
+          </View>
         </View>
 
         {watched > 0 ? (
@@ -145,6 +154,15 @@ const styles = StyleSheet.create({
   head: { gap: Space.xs },
   title: { ...Type.title, color: Colors.text },
   subtitle: { ...Type.body, color: Colors.textMuted },
+  creatorRow: { flexDirection: 'row', alignItems: 'center', gap: Space.xs },
+  creatorAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surfaceHi,
+  },
   meta: { ...Type.caption, color: Colors.textFaint, ...TabularNums },
 
   sectionLabel: {

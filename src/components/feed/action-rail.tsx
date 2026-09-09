@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -32,7 +33,13 @@ export function ActionRail({
         accessibilityRole="button"
         accessibilityLabel={`Open ${creator.displayName}'s profile`}
         style={styles.hit}>
-        <View style={styles.avatar} />
+        <Image
+          source={{ uri: creator.imageUrl }}
+          style={styles.avatar}
+          contentFit="cover"
+          transition={150}
+          accessibilityLabel={`${creator.displayName}'s avatar`}
+        />
       </Pressable>
 
       <Action

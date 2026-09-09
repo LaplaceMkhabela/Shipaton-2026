@@ -14,6 +14,11 @@
  */
 
 export const DRIVE = {
+  // Creator profile images — creator.png at the root of each course folder.
+  calc_creator_image: '1safKUhSaM8STkRFF5rzdb4EM8QtxCPBv',
+  piano_creator_image: '1QH-FxKfwrWUb9K_R2RqnVtQ3_SKUBKrz',
+  money_creator_image: '1QYFWHco88ExVlLllyfKfQBgI1iBHmz6A',
+
   // Introduction to Calculus — Dr. Elara Voss (10 lessons)
   calc_what_is_a_limit: '14vIG2tegIAVYKvLgcPSUukSGpRbuYIub',
   calc_one_sided_limits: '1abgDhkmQmueIJG6bMYkMr9A9cRUoL01d',
@@ -53,4 +58,8 @@ export type DriveKey = keyof typeof DRIVE;
 
 export function driveVideo(key: DriveKey): string {
   return `https://drive.usercontent.google.com/download?id=${DRIVE[key]}&export=download&confirm=t`;
+}
+
+export function driveImage(key: DriveKey): string {
+  return `https://drive.usercontent.google.com/download?id=${DRIVE[key]}&export=download`;
 }
