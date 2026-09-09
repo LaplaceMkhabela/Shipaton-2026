@@ -45,7 +45,8 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg },
+  // Top padding clears the floating navigation island (see DESIGN.md).
+  safe: { flex: 1, backgroundColor: Colors.bg, paddingTop: Space.xl + Space.xl },
   centered: { flex: 1, backgroundColor: Colors.bg, alignItems: 'center', justifyContent: 'center' },
   block: { gap: Space.md, padding: Space.lg, alignSelf: 'stretch' },
   title: { ...Type.title, color: Colors.text },

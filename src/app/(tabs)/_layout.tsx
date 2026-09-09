@@ -1,34 +1,19 @@
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { Tabs } from 'expo-router';
 
-import { Colors } from '@/constants/theme';
+import { TopIsland } from '@/components/nav/top-island';
 
+// Floating top navigation (see DESIGN.md). The custom `tabBar` replaces the
+// system tab bar entirely — screens are full-bleed and the island floats over
+// them, so the bottom of the screen belongs to the feed, not to chrome.
 export default function TabsLayout() {
   return (
-    <NativeTabs
-      backgroundColor={Colors.bg}
-      indicatorColor={Colors.surfaceHi}
-      labelStyle={{ color: Colors.textMuted, selected: { color: Colors.text } }}>
-      <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Learn</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: 'play.square.stack', selected: 'play.square.stack.fill' }}
-        />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="search">
-        <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="magnifyingglass" />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="create">
-        <NativeTabs.Trigger.Label>Create</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'plus.circle', selected: 'plus.circle.fill' }} />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="profile">
-        <NativeTabs.Trigger.Label>You</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'person', selected: 'person.fill' }} />
-      </NativeTabs.Trigger>
-    </NativeTabs>
+    <Tabs
+      screenOptions={{ headerShown: false }}
+      tabBar={(props) => <TopIsland {...props} />}>
+      <Tabs.Screen name="index" options={{ title: 'Learn' }} />
+      <Tabs.Screen name="search" options={{ title: 'Search' }} />
+      <Tabs.Screen name="create" options={{ title: 'Create' }} />
+      <Tabs.Screen name="profile" options={{ title: 'You' }} />
+    </Tabs>
   );
 }

@@ -85,6 +85,9 @@ Full-bleed video. Top scrim ~120px. Bottom scrim: vertical gradient (transparent
 
 A thin lime progress bar sits flush at the very bottom — 2px, no track, full-width, driven by `timeUpdate`.
 
+### Navigation island
+Floating pill at the top edge (Learn / Search / Create / You), replacing the native tab bar so the bottom of the screen belongs to the feed. Dark `scrimTop` fill, hairline `border`, `Radius.pill`, drops below the top safe-area inset by `Space.sm`. Active item is white and heavier, inactive is `textMuted`; Material icons + inline labels. Full-bleed screens sit under it; non-feed screens clear it with top padding.
+
 ### Course CTA card
 The funnel's hinge, and the most important component in the app.
 
