@@ -81,7 +81,7 @@ export const Motion = {
 ## Components
 
 ### Feed item
-Full-bleed video. Top scrim ~120px, bottom scrim ~280px. Bottom-left: creator handle, lesson title (2 lines max, truncated), topic pill. Right rail: like, save, share, stacked vertically with counts in `micro` beneath each.
+Full-bleed video. Top scrim ~120px. Bottom scrim: vertical gradient (transparent → `scrimBottom`) over ~240px — dark enough for text contrast near the bottom, airy enough to not read as a solid block. Bottom-left: creator handle, lesson title (2 lines max, truncated), topic pill. Right rail: like, save, share, stacked vertically with counts in `micro` beneath each.
 
 A thin lime progress bar sits flush at the very bottom — 2px, no track, full-width, driven by `timeUpdate`.
 

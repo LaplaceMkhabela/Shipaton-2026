@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEvent } from 'expo';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { memo, useEffect, useState } from 'react';
@@ -66,7 +67,12 @@ function FeedItemImpl({ lesson, isActive, height }: Props) {
       </Pressable>
 
       {/* Text over video always sits on a scrim — see DESIGN.md */}
-      <View style={styles.scrim} pointerEvents="none" />
+      <LinearGradient
+        colors={['rgba(10,10,11,0)', 'rgba(10,10,11,0.55)', Colors.scrimBottom]}
+        locations={[0, 0.4, 1]}
+        style={styles.scrim}
+        pointerEvents="none"
+      />
 
       <View style={styles.arail}>
         <ActionRail creator={lesson.creator} likeCount={lesson.likeCount} />
@@ -111,8 +117,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 280,
-    backgroundColor: Colors.scrimBottom,
+    height: 240,
   },
   overlay: {
     position: 'absolute',
