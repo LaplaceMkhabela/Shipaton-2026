@@ -77,7 +77,7 @@ function FeedItemImpl({ lesson, isActive, height }: Props) {
           <CourseCtaCard
             course={lesson.course}
             visible={isActive && progress >= CTA_AT}
-            freeCount={3}
+            freeCount={lesson.course.freeLessonCount}
           />
         ) : null}
         <Text style={styles.handle}>@{lesson.creator.handle}</Text>

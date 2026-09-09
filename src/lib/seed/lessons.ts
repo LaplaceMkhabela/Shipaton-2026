@@ -4,10 +4,16 @@
  * Shaped like the `FeedLesson` contract in API.md, so switching to the real
  * `getFeed` query is an import change rather than a rewrite.
  *
- * The videos are Google's public sample clips — stable, no auth, no rate
- * limits. They're landscape and obviously not lessons; they exist to exercise
- * the player. Real vertical content arrives with GitHub issue #2.
+ * Videos stream from the shared Shipaton_2026 Google Drive folder via
+ * drive.ts — real course content from three creators (calculus, piano,
+ * saving money). Lifecycle, descriptions and lesson counts come from the
+ * course-structure JSON each creator keeps beside their videos.
+ *
+ * Durations are estimates where the JSON doesn't state one; real value comes
+ * from the `lessons.duration_seconds` column once issue #2 lands.
  */
+
+import { driveVideo, type DriveKey } from './drive';
 
 export type SeedCreator = {
   id: string;
@@ -19,6 +25,8 @@ export type SeedCourse = {
   id: string;
   title: string;
   lessonCount: number;
+  /** Count of that course's lessons shown free in the feed (the funnel). */
+  freeLessonCount: number;
 };
 
 export type FeedLesson = {
@@ -35,152 +43,78 @@ export type FeedLesson = {
 };
 
 export const CREATORS: Record<string, SeedCreator> = {
-  thandi: { id: 'c1', handle: 'thandishoots', displayName: 'Thandi Nkosi' },
-  marco: { id: 'c2', handle: 'marcocooks', displayName: 'Marco Bianchi' },
-  ayesha: { id: 'c3', handle: 'ayeshafinance', displayName: 'Ayesha Patel' },
-  dave: { id: 'c4', handle: 'davesixstrings', displayName: 'Dave Mokoena' },
+  voss: { id: 'c1', handle: 'elaravoss', displayName: 'Dr. Elara Voss' },
+  keys: { id: 'c2', handle: 'juliankeys', displayName: 'Julian Keys' },
+  vance: { id: 'c3', handle: 'eliasvance', displayName: 'Elias Vance' },
 };
 
 export const COURSES: Record<string, SeedCourse> = {
-  photo: { id: 'co1', title: 'Phone Photography That Looks Expensive', lessonCount: 14 },
-  knife: { id: 'co2', title: 'Knife Skills in One Weekend', lessonCount: 9 },
-  money: { id: 'co3', title: 'Your First R10,000 Invested', lessonCount: 11 },
+  calc: { id: 'co1', title: 'Introduction to Calculus', lessonCount: 30, freeLessonCount: 10 },
+  piano: {
+    id: 'co2',
+    title: '120-Minute Beginner Piano Crash Course',
+    lessonCount: 24,
+    freeLessonCount: 9,
+  },
+  money: { id: 'co3', title: 'Saving Money', lessonCount: 15, freeLessonCount: 9 },
 };
 
-const V = (name: string) =>
-  `https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/${name}.mp4`;
+function feed(
+  id: string,
+  title: string,
+  topic: string,
+  video: DriveKey,
+  durationSeconds: number,
+  creator: SeedCreator,
+  course: SeedCourse,
+  likeCount: number,
+  viewCount: number
+): FeedLesson {
+  return {
+    id,
+    title,
+    topic,
+    videoUrl: driveVideo(video),
+    durationSeconds,
+    likeCount,
+    viewCount,
+    creator,
+    course,
+  };
+}
 
 export const seedLessons: FeedLesson[] = [
-  {
-    id: 'l1',
-    title: 'Why your photos look flat (and the one fix)',
-    topic: 'Photography',
-    videoUrl: V('BigBuckBunny'),
-    durationSeconds: 48,
-    likeCount: 1284,
-    viewCount: 21400,
-    creator: CREATORS.thandi,
-    course: COURSES.photo,
-  },
-  {
-    id: 'l2',
-    title: 'Hold your knife like this, not like that',
-    topic: 'Cooking',
-    videoUrl: V('ElephantsDream'),
-    durationSeconds: 39,
-    likeCount: 892,
-    viewCount: 15200,
-    creator: CREATORS.marco,
-    course: COURSES.knife,
-  },
-  {
-    id: 'l3',
-    title: 'Compound interest, explained with a jar',
-    topic: 'Money',
-    videoUrl: V('ForBiggerBlazes'),
-    durationSeconds: 55,
-    likeCount: 3410,
-    viewCount: 68900,
-    creator: CREATORS.ayesha,
-    course: COURSES.money,
-  },
-  {
-    id: 'l4',
-    title: 'The only 4 chords you need this week',
-    topic: 'Guitar',
-    videoUrl: V('ForBiggerEscapes'),
-    durationSeconds: 42,
-    likeCount: 620,
-    viewCount: 9800,
-    creator: CREATORS.dave,
-    course: null, // standalone — no CTA card
-  },
-  {
-    id: 'l5',
-    title: 'Golden hour is a lie. Shoot at this time instead',
-    topic: 'Photography',
-    videoUrl: V('ForBiggerFun'),
-    durationSeconds: 51,
-    likeCount: 2145,
-    viewCount: 40300,
-    creator: CREATORS.thandi,
-    course: COURSES.photo,
-  },
-  {
-    id: 'l6',
-    title: 'Salt earlier. Here is why it matters',
-    topic: 'Cooking',
-    videoUrl: V('ForBiggerJoyrides'),
-    durationSeconds: 36,
-    likeCount: 1502,
-    viewCount: 27700,
-    creator: CREATORS.marco,
-    course: COURSES.knife,
-  },
-  {
-    id: 'l7',
-    title: 'Emergency fund before investing. Always',
-    topic: 'Money',
-    videoUrl: V('ForBiggerMeltdowns'),
-    durationSeconds: 47,
-    likeCount: 980,
-    viewCount: 18600,
-    creator: CREATORS.ayesha,
-    course: COURSES.money,
-  },
-  {
-    id: 'l8',
-    title: 'Your strumming hand is too tense',
-    topic: 'Guitar',
-    videoUrl: V('Sintel'),
-    durationSeconds: 44,
-    likeCount: 733,
-    viewCount: 12100,
-    creator: CREATORS.dave,
-    course: null,
-  },
-  {
-    id: 'l9',
-    title: 'Portrait mode vs. actually moving closer',
-    topic: 'Photography',
-    videoUrl: V('SubaruOutbackOnStreetAndDirt'),
-    durationSeconds: 53,
-    likeCount: 1876,
-    viewCount: 33400,
-    creator: CREATORS.thandi,
-    course: COURSES.photo,
-  },
-  {
-    id: 'l10',
-    title: 'A dull knife is the dangerous one',
-    topic: 'Cooking',
-    videoUrl: V('TearsOfSteel'),
-    durationSeconds: 40,
-    likeCount: 2290,
-    viewCount: 51800,
-    creator: CREATORS.marco,
-    course: COURSES.knife,
-  },
-  {
-    id: 'l11',
-    title: 'Fees eat more than you think',
-    topic: 'Money',
-    videoUrl: V('VolkswagenGTIReview'),
-    durationSeconds: 49,
-    likeCount: 4102,
-    viewCount: 88200,
-    creator: CREATORS.ayesha,
-    course: COURSES.money,
-  },
-  {
-    id: 'l12',
-    title: 'Practise slower than feels useful',
-    topic: 'Guitar',
-    videoUrl: V('WeAreGoingOnBullrun'),
-    durationSeconds: 38,
-    likeCount: 545,
-    viewCount: 7400,
-    creator: CREATORS.dave,
-    course: null,
-  },
+  // ── Introduction to Calculus ───────────────────────────────────────────
+  feed('cl1', 'What is a Limit?', 'Calculus', 'calc_what_is_a_limit', 45, CREATORS.voss, COURSES.calc, 2184, 41200),
+  feed('cl2', 'One-Sided Limits', 'Calculus', 'calc_one_sided_limits', 50, CREATORS.voss, COURSES.calc, 1642, 29800),
+  feed('cl3', 'Limit Notation', 'Calculus', 'calc_limit_notation', 35, CREATORS.voss, COURSES.calc, 1201, 22600),
+  feed('cl4', 'Computing Limits Algebraically', 'Calculus', 'calc_computing_limits', 60, CREATORS.voss, COURSES.calc, 1833, 33900),
+  feed('cl5', 'Limits at Infinity', 'Calculus', 'calc_limits_at_infinity', 55, CREATORS.voss, COURSES.calc, 976, 18300),
+  feed('cl6', 'Infinite Limits', 'Calculus', 'calc_infinite_limits', 50, CREATORS.voss, COURSES.calc, 1402, 25100),
+  feed('cl7', 'Continuity Defined', 'Calculus', 'calc_continuity_defined', 45, CREATORS.voss, COURSES.calc, 1130, 21000),
+  feed('cl8', 'Types of Discontinuities', 'Calculus', 'calc_discontinuities', 55, CREATORS.voss, COURSES.calc, 1520, 27200),
+  feed('cl9', 'Intermediate Value Theorem', 'Calculus', 'calc_ivt', 60, CREATORS.voss, COURSES.calc, 1284, 23900),
+  feed('cl10', 'Limit & Continuity Summary', 'Calculus', 'calc_summary', 40, CREATORS.voss, COURSES.calc, 861, 16800),
+
+  // ── Learning the Piano ──────────────────────────────────────────────────
+  feed('pn1', 'Welcome to Piano', 'Piano', 'piano_welcome', 90, CREATORS.keys, COURSES.piano, 3240, 58300),
+  feed('pn2', 'Understanding the Keyboard', 'Piano', 'piano_keyboard', 90, CREATORS.keys, COURSES.piano, 2810, 51200),
+  feed('pn3', 'Finding Middle C', 'Piano', 'piano_middle_c', 75, CREATORS.keys, COURSES.piano, 1950, 36700),
+  feed('pn4', 'Finger Numbers', 'Piano', 'piano_finger_numbers', 70, CREATORS.keys, COURSES.piano, 1734, 32100),
+  feed('pn5', 'Rhythm', 'Piano', 'piano_rhythm', 80, CREATORS.keys, COURSES.piano, 2208, 40800),
+  feed('pn6', 'Notes', 'Piano', 'piano_notes', 60, CREATORS.keys, COURSES.piano, 1521, 27900),
+  feed('pn7', 'Chords', 'Piano', 'piano_chords', 75, CREATORS.keys, COURSES.piano, 2683, 49200),
+  feed('pn8', 'Scales', 'Piano', 'piano_scales', 90, CREATORS.keys, COURSES.piano, 1990, 37400),
+  feed('pn9', 'Playing Simple Music', 'Piano', 'piano_simple_music', 95, CREATORS.keys, COURSES.piano, 3411, 62100),
+
+  // ── Saving Money ────────────────────────────────────────────────────────
+  feed('m1', 'Write Your Savings Goal', 'Money', 'money_write_goal', 30, CREATORS.vance, COURSES.money, 3890, 72400),
+  feed('m2', 'Micro-Savings', 'Money', 'money_micro_savings', 30, CREATORS.vance, COURSES.money, 2734, 51900),
+  feed('m3', 'Gamify Your Savings', 'Money', 'money_gamify', 30, CREATORS.vance, COURSES.money, 2415, 45300),
+  feed('m4', 'Automate Your Savings', 'Money', 'money_automate_savings', 30, CREATORS.vance, COURSES.money, 3021, 56600),
+  feed('m5', 'Emergency Fund Shield', 'Money', 'money_emergency_fund', 30, CREATORS.vance, COURSES.money, 3542, 67200),
+  feed('m6', 'High-Yield Savings', 'Money', 'money_high_yield', 30, CREATORS.vance, COURSES.money, 2209, 41800),
+  feed('m7', 'Automate Wealth Buckets', 'Money', 'money_automate_buckets', 30, CREATORS.vance, COURSES.money, 2643, 49700),
+  feed('m8', 'Compound Interest', 'Money', 'money_compound_interest', 30, CREATORS.vance, COURSES.money, 4185, 80900),
+  feed('m9', 'Audit Your Expenses', 'Money', 'money_audit', 30, CREATORS.vance, COURSES.money, 1872, 34100),
 ];
