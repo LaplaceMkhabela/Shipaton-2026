@@ -1,17 +1,21 @@
 /**
- * Google Drive media registry for the seeded backend (issue #2).
+ * Media registry for the seeded backend.
  *
- * Every file lives in the shared Shipaton_2026 Drive folder:
+ * Every asset originated in the shared Shipaton_2026 Drive folder:
  * https://drive.google.com/drive/folders/1czP7C6_LVdvYjimW0igS_iVeR-da7Jce
  *
- * We stream via `drive.usercontent.google.com`, which serves `video/mp4` with
- * HTTP range support (verified: 206 Partial Content), so AVPlayer/ExoPlayer
- * can seek instead of buffering the whole clip. The `export=download&confirm=t`
- * query bypasses Drive's virus-scan interstitial for public files.
- *
- * NOTE: Drive is not a CDN. A real backend serves these from Supabase Storage
- * (see schema.txt) — this exists so the feed runs while issue #2 is open.
+ * `DRIVE` below mirrors that folder: the IDs are the Drive file IDs. All 31
+ * files (28 lesson MP4s + 3 creator PNGs) have been mirrored to the public
+ * Supabase `lessons-free` bucket — object paths are `<course>/<key>.mp4` and
+ * `<course>/creator.png` (see DRIVE.md). `videoUrl`/`imageUrl` resolve those
+ * paths to public object URLs, which is what the app streams. Paid course
+ * media will live in the private `lessons-paid` bucket behind the
+ * `get-lesson-url` edge function (see schema.txt); none is uploaded yet.
  */
+
+export const SUPABASE_REF = 'rudbxehxybrdxaduofhs';
+export const SUPABASE_STORAGE_BASE = `https://${SUPABASE_REF}.supabase.co/storage/v1`;
+export const MEDIA_BUCKET = 'lessons-free';
 
 export const DRIVE = {
   // Creator profile images — creator.png at the root of each course folder.
@@ -56,10 +60,20 @@ export const DRIVE = {
 
 export type DriveKey = keyof typeof DRIVE;
 
-export function driveVideo(key: DriveKey): string {
-  return `https://drive.usercontent.google.com/download?id=${DRIVE[key]}&export=download&confirm=t`;
+function mediaObjectPath(key: DriveKey): string {
+  const course = key.slice(0, key.indexOf('_'));
+  if (key.endsWith('_creator_image')) return `${course}/creator.png`;
+  return `${course}/${key}.mp4`;
 }
 
-export function driveImage(key: DriveKey): string {
-  return `https://drive.usercontent.google.com/download?id=${DRIVE[key]}&export=download`;
+function publicObjectUrl(objectPath: string): string {
+  return `${SUPABASE_STORAGE_BASE}/object/public/${MEDIA_BUCKET}/${objectPath}`;
+}
+
+export function videoUrl(key: DriveKey): string {
+  return publicObjectUrl(mediaObjectPath(key));
+}
+
+export function imageUrl(key: DriveKey): string {
+  return publicObjectUrl(mediaObjectPath(key));
 }

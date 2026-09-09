@@ -4,16 +4,17 @@
  * Shaped like the `FeedLesson` contract in API.md, so switching to the real
  * `getFeed` query is an import change rather than a rewrite.
  *
- * Videos stream from the shared Shipaton_2026 Google Drive folder via
- * drive.ts — real course content from three creators (calculus, piano,
- * saving money). Lifecycle, descriptions and lesson counts come from the
- * course-structure JSON each creator keeps beside their videos.
+ * Videos stream from the public Supabase `lessons-free` bucket via drive.ts
+ * (mirrored from the shared Shipaton_2026 Google Drive folder) — real course
+ * content from three creators (calculus, piano, saving money). Lifecycle,
+ * descriptions and lesson counts come from the course-structure JSON each
+ * creator keeps beside their videos.
  *
  * Durations are estimates where the JSON doesn't state one; real value comes
  * from the `lessons.duration_seconds` column once issue #2 lands.
  */
 
-import { driveImage, driveVideo, type DriveKey } from './drive';
+import { imageUrl, type DriveKey, videoUrl } from './drive';
 
 export type SeedCreator = {
   id: string;
@@ -45,9 +46,9 @@ export type FeedLesson = {
 };
 
 export const CREATORS: Record<string, SeedCreator> = {
-  voss: { id: 'c1', handle: 'elaravoss', displayName: 'Dr. Elara Voss', imageUrl: driveImage('calc_creator_image') },
-  keys: { id: 'c2', handle: 'juliankeys', displayName: 'Julian Keys', imageUrl: driveImage('piano_creator_image') },
-  vance: { id: 'c3', handle: 'eliasvance', displayName: 'Elias Vance', imageUrl: driveImage('money_creator_image') },
+  voss: { id: 'c1', handle: 'elaravoss', displayName: 'Dr. Elara Voss', imageUrl: imageUrl('calc_creator_image') },
+  keys: { id: 'c2', handle: 'juliankeys', displayName: 'Julian Keys', imageUrl: imageUrl('piano_creator_image') },
+  vance: { id: 'c3', handle: 'eliasvance', displayName: 'Elias Vance', imageUrl: imageUrl('money_creator_image') },
 };
 
 export const COURSES: Record<string, SeedCourse> = {
@@ -76,7 +77,7 @@ function feed(
     id,
     title,
     topic,
-    videoUrl: driveVideo(video),
+    videoUrl: videoUrl(video),
     durationSeconds,
     likeCount,
     viewCount,

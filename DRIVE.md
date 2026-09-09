@@ -1,12 +1,25 @@
 # Shared Drive — Media Folder Map
 
-Reference for navigating the shared `Shipaton_2026` Drive folder. Every asset the
-seed backend (see `API.md`, `schema.txt`) streams is stored here and registered in
-[`src/lib/seed/drive.ts`](../src/lib/seed/drive.ts).
+Reference for navigating the shared `Shipaton_2026` Drive folder — the **origin**
+of the app's media. All 31 assets below have been mirrored to Supabase Storage
+(bucket `lessons-free`, public); object paths and the registry live in
+[`src/lib/seed/drive.ts`](../src/lib/seed/drive.ts). See **Mirror → Supabase
+Storage** for the burned URLs the app actually streams.
 
 - Root folder: <https://drive.google.com/drive/folders/1czP7C6_LVdvYjimW0igS_iVeR-da7Jce>
-- Media is streamed through `drive.usercontent.google.com` with the file IDs below
-  (`driveVideo()` / `driveImage()` in `drive.ts`).
+- Origin streaming: `drive.usercontent.google.com` with the file IDs below.
+  The app no longer uses this — it streams from Supabase (see below).
+
+## Mirror → Supabase Storage
+
+- Project: `rudbxehxybrdxaduofhs` (Supabase)
+- Bucket: `lessons-free` (public). Public object URL pattern:
+  `https://rudbxehxybrdxaduofhs.supabase.co/storage/v1/object/public/lessons-free/{course}/{key}.mp4`
+- Object naming mirrors the Drive tree: `<course>/<key>.mp4` for lessons,
+  `<course>/creator.png` for avatars. `videoUrl()` / `imageUrl()` in
+  `src/lib/seed/drive.ts` build these URLs from the key.
+- Paid course media (none uploaded yet) goes to the private `lessons-paid`
+  bucket behind the `get-lesson-url` edge function (see schema.txt).
 
 ## Folder structure
 
@@ -59,11 +72,13 @@ Each folder holds the free lessons (the ones already in the feed) and a
   (`<course>_<lesson>`); creator avatars are exactly
   `{course}_creator_image`. Every Drive file above has a matching key there so
   UI code never holds raw IDs.
-- **Streaming**: lessons use `driveVideo()` (`export=download&confirm=t`, bypasses
-  the virus-scan interstitial); images use `driveImage()`. Playback is verified to
-  support range requests (206) so players can seek.
-- **Authority**: `drive.ts` is the source of truth for IDs — if you add or move a
-  file in Drive, update both the key table below and `drive.ts` together.
+- **Streaming**: the app streams from Supabase Storage (`videoUrl()` /
+  `imageUrl()` in `drive.ts`). Supabase serves the mirrored objects as
+  `video/mp4` / `image/png` with range requests, so players can seek.
+- **Authority**: `drive.ts` is the source of truth for both Drive IDs (below)
+  and the Supabase object paths (`videoUrl` / `imageUrl` build them from the
+  key). Move or add assets in Drive, re-run the mirror upload, and update both
+  the key table below and `drive.ts` together.
 
 ## Key → file ID index
 
