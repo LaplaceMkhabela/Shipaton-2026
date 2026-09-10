@@ -50,7 +50,11 @@ export default function CourseScreen() {
         <View style={styles.head}>
           <Text style={styles.title}>{course.title}</Text>
           <Text style={styles.subtitle}>{course.subtitle}</Text>
-          <View style={styles.creatorRow}>
+          <Pressable
+            onPress={() => router.push(`/creator/${course.creator.id}`)}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${course.creator.displayName}'s profile`}
+            style={({ pressed }) => [styles.creatorRow, pressed && styles.creatorRowPressed]}>
             <Image
               source={{ uri: course.creator.imageUrl }}
               style={styles.creatorAvatar}
@@ -60,7 +64,8 @@ export default function CourseScreen() {
             <Text style={styles.meta}>
               @{course.creator.handle} · {course.lessonCount} lessons · {course.totalLabel}
             </Text>
-          </View>
+            <Text style={styles.chevron}>›</Text>
+          </Pressable>
         </View>
 
         {watched > 0 ? (
@@ -154,7 +159,9 @@ const styles = StyleSheet.create({
   head: { gap: Space.xs },
   title: { ...Type.title, color: Colors.text },
   subtitle: { ...Type.body, color: Colors.textMuted },
-  creatorRow: { flexDirection: 'row', alignItems: 'center', gap: Space.xs },
+  creatorRow: { flexDirection: 'row', alignItems: 'center', gap: Space.xs, alignSelf: 'flex-start' },
+  creatorRowPressed: { opacity: 0.6 },
+  chevron: { ...Type.caption, color: Colors.textFaint },
   creatorAvatar: {
     width: 20,
     height: 20,

@@ -22,6 +22,9 @@ export type SeedCreator = {
   displayName: string;
   /** Avatar — creator.png from the course folder in Drive. */
   imageUrl: string;
+  /** Short pitch, shown on the creator profile page. */
+  bio: string;
+  followerCount: number;
 };
 
 export type SeedCourse = {
@@ -46,9 +49,30 @@ export type FeedLesson = {
 };
 
 export const CREATORS: Record<string, SeedCreator> = {
-  voss: { id: 'c1', handle: 'elaravoss', displayName: 'Dr. Elara Voss', imageUrl: imageUrl('calc_creator_image') },
-  keys: { id: 'c2', handle: 'juliankeys', displayName: 'Julian Keys', imageUrl: imageUrl('piano_creator_image') },
-  vance: { id: 'c3', handle: 'eliasvance', displayName: 'Elias Vance', imageUrl: imageUrl('money_creator_image') },
+  voss: {
+    id: 'c1',
+    handle: 'elaravoss',
+    displayName: 'Dr. Elara Voss',
+    imageUrl: imageUrl('calc_creator_image'),
+    bio: "Math professor making calculus make sense — one 45-second intuition at a time. No memorising, just seeing.",
+    followerCount: 48200,
+  },
+  keys: {
+    id: 'c2',
+    handle: 'juliankeys',
+    displayName: 'Julian Keys',
+    imageUrl: imageUrl('piano_creator_image'),
+    bio: "Pianist and teacher. You don't need to read music to start — you need five honest minutes a day.",
+    followerCount: 87600,
+  },
+  vance: {
+    id: 'c3',
+    handle: 'eliasvance',
+    displayName: 'Elias Vance',
+    imageUrl: imageUrl('money_creator_image'),
+    bio: "Money coach for people who think \u201cbudget\u201d is a four-letter word. Small systems, lasting change.",
+    followerCount: 64100,
+  },
 };
 
 export const COURSES: Record<string, SeedCourse> = {
